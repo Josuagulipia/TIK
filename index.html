@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ular Tangga Digital — UU ITE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#101B33;
+    --navy-deep:#0A1226;
+    --parchment:#F3EDE0;
+    --parchment-dim:#E4DCC8;
+    --gold:#C8A24A;
+    --gold-bright:#E4C878;
+    --signal-red:#C1443C;
+    --circuit-green:#3FA796;
+    --ink:#1B2430;
+    --white:#FBF9F4;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 10%, rgba(200,162,74,0.10), transparent 45%),
+      radial-gradient(circle at 85% 90%, rgba(63,167,150,0.10), transparent 45%),
+      var(--navy-deep);
+    color:var(--parchment);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:28px 16px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  header{
+    text-align:center;
+    margin-bottom:22px;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:.28em;
+    text-transform:uppercase;
+    font-size:12px;
+    color:var(--gold-bright);
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    margin-bottom:8px;
+  }
+  .eyebrow::before,.eyebrow::after{content:"";width:36px;height:1px;background:var(--gold);opacity:.5;}
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:900;
+    font-size:clamp(28px,4.2vw,46px);
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  h1 .accent{color:var(--gold-bright); font-style:italic; font-weight:500;}
+  .sub{color:var(--parchment-dim);font-size:14.5px;max-width:560px;margin:0 auto;line-height:1.5;}
+
+  .fs-toggle{
+    position:fixed;top:16px;right:16px;z-index:60;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;font-weight:700;letter-spacing:.03em;
+    background:rgba(200,162,74,0.14);
+    color:var(--gold-bright);
+    border:1px solid rgba(200,162,74,0.4);
+    border-radius:10px;
+    padding:12px 18px;
+    cursor:pointer;
+    display:flex;align-items:center;gap:8px;
+  }
+  .fs-toggle:hover{background:rgba(200,162,74,0.24);}
+
+  .layout{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 300px;
+    gap:22px;
+    align-items:start;
+  }
+  @media (max-width:880px){ .layout{grid-template-columns:1fr;} }
+
+  /* ---- Board ---- */
+  .board-card{
+    background:linear-gradient(180deg,var(--navy),var(--navy-deep));
+    border:1px solid rgba(200,162,74,0.25);
+    border-radius:18px;
+    padding:16px;
+    position:relative;
+    box-shadow:0 30px 60px -25px rgba(0,0,0,0.6);
+  }
+  .board-outer{position:relative;}
+  #boardSvgLayer{position:absolute;inset:0;pointer-events:none;z-index:5;}
+  .board{
+    display:grid;
+    grid-template-columns:repeat(10,1fr);
+    grid-template-rows:repeat(10,1fr);
+    aspect-ratio:1/1;
+    width:100%;
+    gap:2px;
+    background:rgba(200,162,74,0.15);
+    border:1px solid rgba(200,162,74,0.3);
+    border-radius:10px;
+    overflow:hidden;
+    position:relative;
+  }
+  .cell{
+    background:var(--navy);
+    position:relative;
+    display:flex;
+    align-items:flex-start;
+    justify-content:flex-end;
+    padding:3px 5px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:rgba(243,237,224,0.5);
+  }
+  .cell.odd-row{background:#0D1730;}
+  .cell.ladder-start{box-shadow:inset 0 0 0 1.5px rgba(63,167,150,0.6);}
+  .cell.snake-start{box-shadow:inset 0 0 0 1.5px rgba(193,68,60,0.6);}
+  .cell .glyph{
+    position:absolute;bottom:3px;left:3px;
+    font-size:10px;opacity:.55;
+  }
+  .tokens{
+    position:absolute;bottom:2px;right:2px;
+    display:flex;flex-wrap:wrap-reverse;gap:2px;
+    max-width:90%;
+  }
+  .token{
+    width:19px;height:19px;border-radius:50%;
+    border:2px solid var(--navy-deep);
+    box-shadow:0 1px 3px rgba(0,0,0,0.5);
+    transition:transform .25s ease;
+  }
+
+  /* ---- Side panel ---- */
+  .panel{display:flex;flex-direction:column;gap:16px;}
+  .card{
+    background:linear-gradient(180deg,var(--navy),var(--navy-deep));
+    border:1px solid rgba(200,162,74,0.25);
+    border-radius:16px;
+    padding:16px 18px;
+  }
+  .card h3{
+    font-family:'Fraunces',serif;
+    font-size:15px;font-weight:700;
+    margin:0 0 10px;
+    color:var(--gold-bright);
+    letter-spacing:.02em;
+  }
+  .player-row{
+    display:flex;align-items:center;gap:10px;
+    padding:11px 12px;border-radius:10px;
+    margin-bottom:7px;
+    background:rgba(255,255,255,0.02);
+    border:1px solid transparent;
+    transition:.2s;
+  }
+  .player-row.active{
+    border-color:var(--gold);
+    background:rgba(200,162,74,0.10);
+  }
+  .dot{width:16px;height:16px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(0,0,0,0.3) inset;}
+  .player-row .pname{font-size:15.5px;font-weight:600;flex:1;}
+  .player-row .ppos{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--parchment-dim);}
+
+  .dice-area{text-align:center;}
+  #dice{
+    width:84px;height:84px;margin:8px auto 14px;
+    background:var(--parchment);
+    border-radius:16px;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(3,1fr);
+    padding:12px;
+    box-shadow:0 10px 24px -8px rgba(0,0,0,0.6);
+  }
+  #dice .pip{border-radius:50%;background:var(--ink);opacity:0;}
+  #dice .pip.on{opacity:1;}
+  #dice.rolling{animation:shake .5s ease;}
+  @keyframes shake{
+    0%,100%{transform:rotate(0deg);}
+    25%{transform:rotate(-8deg);}
+    75%{transform:rotate(8deg);}
+  }
+  .btn{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;font-size:15.5px;letter-spacing:.04em;
+    text-transform:uppercase;
+    background:var(--gold);
+    color:var(--navy-deep);
+    border:none;border-radius:12px;
+    padding:16px 20px;cursor:pointer;
+    width:100%;
+    min-height:52px;
+    transition:.15s;
+  }
+  .btn:hover:not(:disabled){background:var(--gold-bright); transform:translateY(-1px);}
+  .btn:active:not(:disabled){transform:translateY(0px) scale(0.98);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn.secondary{background:transparent;color:var(--parchment);border:1px solid rgba(200,162,74,0.4);}
+  .btn.secondary:hover{border-color:var(--gold);}
+
+  .log{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;color:var(--parchment-dim);
+    max-height:130px;overflow-y:auto;
+    line-height:1.65;
+  }
+  .log div{border-left:2px solid rgba(200,162,74,0.3);padding-left:8px;margin-bottom:6px;}
+
+  .legend{display:flex;gap:14px;font-size:13px;color:var(--parchment-dim);flex-wrap:wrap;}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;}
+
+  /* ---- Setup modal ---- */
+  .overlay{
+    position:fixed;inset:0;z-index:50;
+    background:rgba(10,18,38,0.82);
+    backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .hidden{display:none !important;}
+  .modal{
+    background:var(--parchment);
+    color:var(--ink);
+    border-radius:20px;
+    padding:32px 30px;
+    width:100%;max-width:560px;
+    box-shadow:0 40px 80px -20px rgba(0,0,0,0.7);
+    max-height:88vh;overflow-y:auto;
+  }
+  .modal h2{
+    font-family:'Fraunces',serif;font-weight:900;font-size:27px;margin:0 0 4px;
+  }
+  .modal .modal-sub{font-size:14.5px;color:#5b5342;margin-bottom:20px;}
+  .field{margin-bottom:16px;}
+  .field label{
+    display:block;font-family:'JetBrains Mono',monospace;
+    font-size:12px;text-transform:uppercase;letter-spacing:.06em;
+    color:#7a6f56;margin-bottom:8px;
+  }
+  .count-picker{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+  }
+  .count-btn{
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:16px;
+    padding:14px 0;border-radius:10px;border:1.5px solid #d8cdad;
+    background:var(--white);color:var(--ink);cursor:pointer;
+    min-height:52px;
+  }
+  .count-btn.selected{background:var(--gold);border-color:var(--gold);color:var(--navy-deep);}
+  select,input[type=text]{
+    width:100%;padding:10px 12px;border-radius:8px;
+    border:1px solid #cfc4a4;background:var(--white);
+    font-family:'Inter',sans-serif;font-size:14px;color:var(--ink);
+  }
+  .player-setup-row{
+    display:flex;gap:10px;align-items:center;margin-bottom:10px;
+    background:var(--white);border:1.5px solid #d8cdad;border-radius:12px;
+    padding:10px 10px;
+  }
+  .swatch{width:26px;height:26px;border-radius:50%;flex:none;box-shadow:0 0 0 2px rgba(0,0,0,0.15) inset;}
+  .name-cycle{
+    flex:1;display:flex;align-items:center;justify-content:space-between;gap:6px;
+  }
+  .name-cycle .pname-display{
+    font-size:16px;font-weight:600;flex:1;text-align:center;
+    font-family:'Inter',sans-serif;
+  }
+  .name-arrow{
+    font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;
+    background:var(--parchment);border:1.5px solid #d8cdad;border-radius:8px;
+    width:40px;height:40px;flex:none;cursor:pointer;color:var(--ink);
+  }
+  .name-arrow:hover{border-color:var(--gold);background:#FBF6E9;}
+
+  /* Quiz modal */
+  .quiz-modal{max-width:600px;}
+  .quiz-tag{
+    font-family:'JetBrains Mono',monospace;font-size:12px;
+    text-transform:uppercase;letter-spacing:.08em;
+    color:#8a6d1f;background:#F0E4C4;
+    display:inline-block;padding:5px 10px;border-radius:6px;
+    margin-bottom:14px;
+  }
+  .quiz-q{font-size:19px;font-weight:600;line-height:1.45;margin-bottom:18px;}
+  .opt{
+    display:block;width:100%;text-align:left;
+    background:var(--white);border:1.5px solid #d8cdad;
+    border-radius:12px;padding:15px 18px;margin-bottom:10px;
+    font-size:16px;cursor:pointer;transition:.15s;color:var(--ink);
+    min-height:52px;
+  }
+  .opt:hover:not(:disabled){border-color:var(--gold);background:#FBF6E9;}
+  .opt.correct{background:#DFF3EA;border-color:var(--circuit-green);}
+  .opt.wrong{background:#F7E2E0;border-color:var(--signal-red);}
+  .opt:disabled{cursor:default;}
+  .explain{
+    background:#EFE9D8;border-radius:10px;padding:14px 16px;
+    font-size:14.5px;line-height:1.55;margin-top:10px;color:#3d3627;
+    display:none;
+  }
+  .explain.show{display:block;}
+
+  .timer-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .timer-bar-outer{
+    flex:1;height:9px;background:#e5dcc0;border-radius:5px;overflow:hidden;
+  }
+  .timer-bar-inner{
+    height:100%;width:100%;background:var(--gold);
+    transition:width 1s linear, background-color .3s;
+  }
+  .timer-text{
+    font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;
+    color:#7a6f56;min-width:38px;text-align:right;
+  }
+
+  .win-modal{text-align:center;max-width:420px;}
+  .win-modal .medal{font-size:48px;margin-bottom:6px;}
+  .win-modal h2{font-size:28px;}
+
+  /* ---- Skala lebih besar untuk layar TV/interactive display ---- */
+  @media (min-width:1400px){
+    .btn{font-size:18px;padding:19px 22px;min-height:60px;border-radius:14px;}
+    .opt{font-size:19px;padding:19px 22px;min-height:60px;}
+    .quiz-q{font-size:23px;}
+    .card h3{font-size:18px;}
+    .player-row .pname{font-size:18px;}
+    .player-row .ppos{font-size:15px;}
+    .log{font-size:14px;}
+    .legend{font-size:15px;}
+    .cell{font-size:13px;}
+    .token{width:23px;height:23px;}
+    #dice{width:104px;height:104px;}
+    .modal h2{font-size:32px;}
+    .modal .modal-sub{font-size:16px;}
+    .count-btn{font-size:19px;padding:18px 0;}
+    .name-cycle .pname-display{font-size:19px;}
+    .fs-toggle{font-size:15px;padding:14px 20px;}
+  }
+</style>
+</head>
+<body>
+<button class="fs-toggle" id="fsToggle" type="button">⛶ Layar Penuh</button>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Papan Hukum Digital</div>
+    <h1>Ular Tangga <span class="accent">UU ITE</span></h1>
+    <p class="sub">Susuri 100 petak sejarah dan pasal UU ITE — jawab benar untuk melaju, jawab salah dan giliran berpindah ke pemain lain.</p>
+  </header>
+
+  <div class="layout">
+    <div class="board-card">
+      <div class="board-outer">
+        <svg id="boardSvgLayer" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+        <div class="board" id="board"></div>
+      </div>
+      <div class="legend" style="margin-top:12px;">
+        <span><i style="background:var(--circuit-green);"></i> Tangga — melompat naik</span>
+        <span><i style="background:var(--signal-red);"></i> Kabel putus — turun</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card">
+        <h3>Pemain</h3>
+        <div id="playerList"></div>
+      </div>
+
+      <div class="card dice-area">
+        <h3 style="text-align:left;">Giliran</h3>
+        <div id="dice"></div>
+        <button class="btn" id="rollBtn">Lempar Dadu</button>
+        <button class="btn secondary" id="restartBtn" style="margin-top:8px;">Mulai Ulang</button>
+      </div>
+
+      <div class="card">
+        <h3>Catatan Permainan</h3>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Setup Modal -->
+<div class="overlay" id="setupOverlay">
+  <div class="modal">
+    <h2>Atur Permainan</h2>
+    <div class="modal-sub">Pilih jumlah pemain dan nama tim, lalu mulai perjalanan melintasi sejarah UU ITE. Semua bisa dipilih dengan sentuhan, tanpa keyboard.</div>
+    <div class="field">
+      <label>Jumlah Pemain</label>
+      <div class="count-picker" id="countPicker">
+        <button type="button" class="count-btn" data-count="1">1</button>
+        <button type="button" class="count-btn selected" data-count="2">2</button>
+        <button type="button" class="count-btn" data-count="3">3</button>
+        <button type="button" class="count-btn" data-count="4">4</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Nama Tim</label>
+      <div id="playerFields"></div>
+    </div>
+    <button class="btn" id="startBtn" style="margin-top:8px;">Mulai Permainan</button>
+  </div>
+</div>
+
+<!-- Quiz Modal -->
+<div class="overlay hidden" id="quizOverlay">
+  <div class="modal quiz-modal">
+    <div class="quiz-tag">Kuis Persyaratan Bergerak</div>
+    <div class="timer-row">
+      <div class="timer-bar-outer"><div class="timer-bar-inner" id="timerBar"></div></div>
+      <div class="timer-text" id="timerText">30s</div>
+    </div>
+    <div class="quiz-q" id="quizQ"></div>
+    <div id="quizOpts"></div>
+    <div class="explain" id="quizExplain"></div>
+    <button class="btn" id="quizNextBtn" style="margin-top:14px;display:none;">Lanjutkan</button>
+  </div>
+</div>
+
+<!-- Win Modal -->
+<div class="overlay hidden" id="winOverlay">
+  <div class="modal win-modal">
+    <div class="medal">🏆</div>
+    <h2 id="winTitle">Selamat!</h2>
+    <p id="winSub" style="color:#5b5342;font-size:14px;"></p>
+    <button class="btn" id="playAgainBtn" style="margin-top:14px;">Main Lagi</button>
+  </div>
+</div>
+
+<script>
+/* ============ BANK SOAL — diekstrak dari materi UU ITE ============ */
+const QUESTION_BANK = [
+  {q:"Pada tahun berapa UU ITE pertama kali disahkan oleh DPR?", opts:["2003","2006","2008","2016"], correct:2, exp:"UU ITE mulai dibahas tahun 2003 dan disahkan DPR sebagai UU No. 11 Tahun 2008."},
+  {q:"Apa nomor Undang-Undang ITE yang pertama kali disahkan?", opts:["UU No. 19 Tahun 2016","UU No. 11 Tahun 2008","UU No. 1 Tahun 2024","UU No. 1 Tahun 2023"], correct:1, exp:"UU ITE pertama adalah UU No. 11 Tahun 2008."},
+  {q:"Kasus Steven Haryanto tahun 2001 terkait dengan apa?", opts:["Pembajakan lagu","Domain mirip situs internet banking BCA","Penghinaan presiden di blog","Penyebaran hoaks"], correct:1, exp:"Steven Haryanto membeli domain mirip situs internet banking BCA seharga $20 USD dengan tampilan identik."},
+  {q:"Siapa nama tokoh yang memicu kontroversi UU ITE lewat kasus pencemaran nama baik via email rumah sakit?", opts:["Steven Haryanto","Prita Mulyasari","Mahfud MD","Joko Widodo"], correct:1, exp:"Kasus Prita Mulyasari memicu kritik luas terkait kebebasan berekspresi dan disebut 'pasal karet'."},
+  {q:"Istilah 'pasal karet' pada UU ITE merujuk pada pasal yang...", opts:["Terlalu jelas dan spesifik","Multitafsir dan berpotensi disalahgunakan","Hanya berlaku untuk pejabat negara","Sudah dihapus sejak awal"], correct:1, exp:"Pasal karet adalah pasal yang dianggap multitafsir sehingga rawan disalahgunakan, seperti pasal pencemaran nama baik."},
+  {q:"Revisi pertama UU ITE disahkan sebagai undang-undang nomor berapa?", opts:["UU No. 19 Tahun 2016","UU No. 11 Tahun 2008","UU No. 1 Tahun 2024","UU No. 1 Tahun 2023"], correct:0, exp:"Revisi pertama UU ITE adalah UU No. 19 Tahun 2016."},
+  {q:"Siapa yang mendorong revisi kedua UU ITE pada Februari 2021?", opts:["Prita Mulyasari","Steven Haryanto","Mahfud MD dan Presiden Jokowi","Ketua MK"], correct:2, exp:"Pernyataan Mahfud MD dan Presiden Jokowi pada Februari 2021 mendorong revisi kedua UU ITE."},
+  {q:"Berapa jumlah Daftar Inventarisasi Masalah (DIM) yang dibahas dalam revisi kedua UU ITE?", opts:["12","15","27","38"], correct:3, exp:"RUU revisi kedua dibahas tertutup dengan 38 Daftar Inventarisasi Masalah (DIM)."},
+  {q:"Revisi kedua UU ITE disahkan menjadi UU No. 1 Tahun 2024. Kapan RUU ini disahkan DPR?", opts:["2 Januari 2024","4 Januari 2024","5 Desember 2023","29 April 2025"], correct:2, exp:"Revisi kedua disahkan DPR pada 5 Desember 2023, ditandatangani Presiden 2 Januari 2024, dan diundangkan 4 Januari 2024."},
+  {q:"Berapa jumlah pasal baru yang ditambahkan dalam UU No. 1 Tahun 2024 (revisi kedua UU ITE)?", opts:["2 pasal baru","5 pasal baru","12 pasal baru","15 pasal baru"], correct:1, exp:"Revisi kedua menambah 5 pasal baru: 13A, 16A, 16B, 18A, 27A, dan 27B (disebut 5 nomor pasal baru dalam materi)."},
+  {q:"Pada revisi kedua, Pasal 27 dirampingkan dari berapa ayat menjadi berapa ayat?", opts:["4 ayat menjadi 2 ayat","3 ayat menjadi 1 ayat","2 ayat menjadi 4 ayat","5 ayat menjadi 3 ayat"], correct:0, exp:"Pasal 27 dirampingkan dari 4 ayat menjadi 2 ayat, dengan unsur penghinaan dan pemerasan dihapus dari pasal ini."},
+  {q:"Pasal 27A dalam revisi kedua UU ITE mengatur tentang...", opts:["Tanda tangan elektronik","Serangan kehormatan/nama baik","Perlindungan anak di ruang digital","Penyidikan siber"], correct:1, exp:"Pasal 27A ditambahkan untuk mengatur serangan terhadap kehormatan atau nama baik seseorang."},
+  {q:"Pasal 27B dalam revisi kedua UU ITE mengatur tentang...", opts:["Ancaman melalui saluran elektronik","Larangan berita bohong","Perlindungan anak","Tanda tangan elektronik"], correct:0, exp:"Pasal 27B mengatur soal ancaman yang disampaikan melalui saluran elektronik."},
+  {q:"Pasal berapa yang mengatur larangan menyebarkan berita bohong penyebab kerusuhan?", opts:["Pasal 27 ayat (2)", "Pasal 28 ayat (3)", "Pasal 16A", "Pasal 43 huruf (i)"], correct:1, exp:"Pasal 28 ayat (3) melarang penyebaran berita bohong yang dapat menimbulkan kerusuhan."},
+  {q:"Pasal 16A dalam revisi kedua UU ITE berfokus pada...", opts:["Tanda tangan elektronik", "Perlindungan anak di ruang digital", "Pemutusan akses rekening bank", "Larangan berita bohong"], correct:1, exp:"Pasal 16A mengatur perlindungan anak di ruang digital, termasuk verifikasi umur dan mekanisme pelaporan."},
+  {q:"Menurut Pasal 43 huruf (i), penyidik polisi berwenang memutus akses sementara terhadap apa saja?", opts:["Hanya akun media sosial","Akun media sosial, rekening bank, uang elektronik, dan aset digital","Hanya rekening bank","Hanya domain website"], correct:1, exp:"Pasal 43 huruf (i) memberi wewenang penyidik memutus akses sementara akun media sosial, rekening bank, uang elektronik, dan aset digital."},
+  {q:"Penguatan tanda tangan elektronik diatur dalam pasal-pasal berikut, kecuali...", opts:["Pasal 13","Pasal 13A","Pasal 17 ayat (2a)","Pasal 27B"], correct:3, exp:"Penguatan tanda tangan elektronik diatur pada Pasal 13, 13A, dan 17 ayat (2a) — bukan Pasal 27B yang mengatur ancaman elektronik."},
+  {q:"UU ITE diharmonisasikan dengan KUHP Nasional yang mulai berlaku tahun berapa?", opts:["2023","2024","2025","2026"], correct:3, exp:"UU ITE diharmonisasikan dengan KUHP Nasional (UU No. 1 Tahun 2023) yang berlaku mulai 2026."},
+  {q:"Sejak 2008, sudah berapa kali UU ITE digugat ke Mahkamah Konstitusi (MK)?", opts:["5 kali","10 kali","15 kali","20 kali"], correct:2, exp:"UU ITE telah digugat sebanyak 15 kali ke Mahkamah Konstitusi sejak tahun 2008."},
+  {q:"Putusan MK pada 29 April 2025 (Perkara No. 105 & 115/PUU-XXII/2024) berdampak pada pasal mana?", opts:["Pasal 27A dan 28 ayat (2)","Pasal 16A dan 16B","Pasal 13 dan 13A","Pasal 43 huruf (i)"], correct:0, exp:"Putusan MK tersebut memperketat unsur pasal penghinaan dalam Pasal 27A dan Pasal 28 ayat (2)."},
+  {q:"Setelah UU ITE berlaku, forum SARA 'Fight Club' di Kaskus diubah menjadi apa?", opts:["Dihapus total","'Debat Club' dengan verifikasi admin","Dipindah ke forum luar negeri","Tetap tanpa perubahan"], correct:1, exp:"Forum tersebut diganti menjadi 'Debat Club' dengan sistem verifikasi admin setelah UU ITE berlaku."},
+  {q:"Tujuan utama disahkannya UU ITE tahun 2008 adalah...", opts:["Membatasi penggunaan internet","Memajukan ekonomi digital serta memberi keamanan & kepastian hukum","Menghapus semua forum daring","Melarang transaksi elektronik"], correct:1, exp:"Tujuan utama UU ITE adalah memajukan ekonomi digital serta memberikan keamanan dan kepastian hukum bagi pengguna internet."},
+  {q:"Berapa harga domain yang dibeli Steven Haryanto pada kasus tahun 2001, yang tampilannya mirip situs internet banking BCA?", opts:["$5 USD","$20 USD","$50 USD","$100 USD"], correct:1, exp:"Steven Haryanto membeli domain mirip situs internet banking BCA seharga $20 USD dengan tampilan identik."},
+  {q:"Pada kasus Steven Haryanto tahun 2001, meskipun username dan password nasabah tersimpan, apa yang terjadi?", opts:["Terjadi kerugian materiel besar","Tidak ada kerugian materiel","Bank BCA bangkrut","Seluruh saldo nasabah hilang"], correct:1, exp:"Meskipun data nasabah tersimpan, kasus tersebut tidak menimbulkan kerugian materiel."},
+  {q:"Kasus penghinaan Presiden pada tahun 2006 terjadi melalui platform apa?", opts:["Forum diskusi","Blog","Email","Media sosial"], correct:1, exp:"Kasus penghinaan Presiden pada 2006 terjadi melalui blog, saat itu belum ada regulasi khusus dunia maya."},
+  {q:"Apa permasalahan utama yang terjadi pada kasus tahun 2007 terkait konten digital?", opts:["Pembajakan digital ilegal","Penipuan perbankan","Pencemaran nama baik","Ancaman elektronik"], correct:0, exp:"Tahun 2007, peredaran konten digital ilegal (pembajakan) meresahkan tanpa adanya undang-undang spesifik."},
+  {q:"Sebelum UU ITE berlaku, kejahatan seperti peretasan dan penipuan daring pada tahun 2008 sulit ditangani karena...", opts:["Tidak ada penyidik polisi","Kekosongan hukum","Anggaran keamanan siber minim","Internet belum berkembang"], correct:1, exp:"Kejahatan digital pada tahun 2008 sulit ditangani karena kekosongan hukum sebelum UU ITE berlaku."},
+  {q:"Jenis konten apa yang dihilangkan dari laman utama sebuah forum setelah UU ITE berlaku?", opts:["Konten politik","Konten dewasa (pornografi)","Konten olahraga","Konten pendidikan"], correct:1, exp:"Forum konten dewasa dihilangkan dari laman utama setelah UU ITE berlaku."},
+  {q:"UU ITE pada dasarnya menggantikan atau memperluas undang-undang apa?", opts:["UU Telekomunikasi","UU Pers","UU Perbankan","UU Hak Cipta"], correct:0, exp:"UU ITE menggantikan/memperluas UU Telekomunikasi yang berlaku sebelumnya."},
+  {q:"Selain hak/kewajiban pengguna dan PSE, apa saja yang tercakup dalam UU ITE?", opts:["Perlindungan data pribadi dan Hak Kekayaan Intelektual (HKI)","Pajak digital dan bea cukai","Regulasi penyiaran televisi","Standar kualitas jaringan internet"], correct:0, exp:"UU ITE mencakup hak/kewajiban pengguna & PSE, perlindungan data pribadi, dan Hak Kekayaan Intelektual (HKI)."},
+  {q:"UU ITE sempat digugat ke Mahkamah Konstitusi (MK) karena dinilai melanggar apa?", opts:["Hak Asasi Manusia (HAM)","Hak cipta internasional","Kedaulatan negara","Prinsip demokrasi ekonomi"], correct:0, exp:"UU ITE digugat ke MK karena dinilai melanggar HAM, namun gugatan tersebut ditolak."},
+  {q:"Bagaimana hasil gugatan awal UU ITE ke Mahkamah Konstitusi terkait dugaan pelanggaran HAM?", opts:["Dikabulkan penuh","Ditolak","Ditunda tanpa batas waktu","Dicabut oleh penggugat"], correct:1, exp:"Gugatan tersebut ditolak oleh Mahkamah Konstitusi."},
+  {q:"Pasal apa yang tetap dipertahankan dalam revisi pertama UU ITE (UU No. 19 Tahun 2016)?", opts:["Pasal tanda tangan elektronik","Pasal pencemaran nama baik","Pasal perlindungan anak","Pasal ancaman elektronik"], correct:1, exp:"Revisi pertama mempertahankan pasal pencemaran nama baik sambil memperjelas pasal multitafsir."},
+  {q:"Meski memperjelas pasal multitafsir, revisi pertama UU ITE dianggap belum menyelesaikan masalah apa?", opts:["Pasal karet dan pemutusan akses konten tanpa moderasi transparan","Perlindungan data pribadi","Tanda tangan elektronik","Kejahatan siber lintas negara"], correct:0, exp:"Revisi pertama dianggap belum menyelesaikan pasal karet dan pemutusan akses konten tanpa moderasi transparan."},
+  {q:"Dalam revisi kedua UU ITE (UU No. 1 Tahun 2024), berapa jumlah pasal lama yang diubah?", opts:["5 pasal","12 pasal","15 pasal","38 pasal"], correct:1, exp:"Revisi kedua mengubah 12 pasal lama, selain menambah pasal-pasal baru."},
+  {q:"Manakah yang BUKAN termasuk pasal baru yang ditambahkan dalam UU No. 1 Tahun 2024?", opts:["Pasal 16B","Pasal 18A","Pasal 27B","Pasal 29"], correct:3, exp:"Pasal baru yang ditambahkan adalah 13A, 16A, 16B, 18A, 27A, dan 27B — bukan Pasal 29."},
+  {q:"Kapan UU No. 1 Tahun 2024 (revisi kedua UU ITE) resmi diundangkan?", opts:["2 Januari 2024","4 Januari 2024","5 Desember 2023","29 April 2025"], correct:1, exp:"UU tersebut ditandatangani Presiden pada 2 Januari 2024 dan diundangkan pada 4 Januari 2024."}
+];
+
+/* ============ Snakes & Ladders map ============ */
+const LADDERS = {4:56, 12:50, 22:58, 41:79, 54:88, 63:94, 71:91};
+const SNAKES  = {98:40, 93:68, 87:36, 76:52, 65:19, 47:11, 34:6};
+
+/* ============ Board building ============ */
+const boardEl = document.getElementById('board');
+const cellPositions = {}; // number -> {x,y} percent center within board grid coords (0-10)
+let cellsMap = {};
+
+function buildBoard(){
+  boardEl.innerHTML = '';
+  for(let row=9; row>=0; row--){
+    const rowNums = [];
+    for(let c=0;c<10;c++) rowNums.push(row*10 + c + 1);
+    if(row % 2 === 0){ /* even row index from bottom goes left->right for row 0, but classic snake board zigzags */ }
+    let numsInOrder = rowNums.slice();
+    if(row % 2 === 1){ numsInOrder.reverse(); }
+    numsInOrder.forEach((num, colIdx) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (( (9-row) % 2===1) ? ' odd-row':'');
+      cell.id = 'cell-'+num;
+      cell.innerHTML = '<span>'+num+'</span><span class="glyph">§</span><div class="tokens" id="tok-'+num+'"></div>';
+      if(LADDERS[num]) cell.classList.add('ladder-start');
+      if(SNAKES[num]) cell.classList.add('snake-start');
+      boardEl.appendChild(cell);
+      cellsMap[num] = cell;
+    });
+  }
+}
+buildBoard();
+
+function computeCellCenters(){
+  const rect = boardEl.getBoundingClientRect();
+  for(let num=1; num<=100; num++){
+    const cell = cellsMap[num];
+    const r = cell.getBoundingClientRect();
+    const xPct = ((r.left + r.width/2) - rect.left) / rect.width * 100;
+    const yPct = ((r.top + r.height/2) - rect.top) / rect.height * 100;
+    cellPositions[num] = {x:xPct, y:yPct};
+  }
+}
+
+function drawConnectors(){
+  const svg = document.getElementById('boardSvgLayer');
+  svg.innerHTML = '';
+  svg.setAttribute('viewBox','0 0 100 100');
+  const ns = 'http://www.w3.org/2000/svg';
+  function line(from,to,color,dashed){
+    const a = cellPositions[from], b = cellPositions[to];
+    if(!a||!b) return;
+    const l = document.createElementNS(ns,'line');
+    l.setAttribute('x1',a.x); l.setAttribute('y1',a.y);
+    l.setAttribute('x2',b.x); l.setAttribute('y2',b.y);
+    l.setAttribute('stroke',color);
+    l.setAttribute('stroke-width','1.1');
+    l.setAttribute('stroke-linecap','round');
+    if(dashed) l.setAttribute('stroke-dasharray','2,1.5');
+    l.setAttribute('opacity','0.85');
+    svg.appendChild(l);
+    [from,to].forEach((n,i)=>{
+      const p = i===0?a:b;
+      const circ = document.createElementNS(ns,'circle');
+      circ.setAttribute('cx',p.x); circ.setAttribute('cy',p.y); circ.setAttribute('r','1.3');
+      circ.setAttribute('fill',color);
+      svg.appendChild(circ);
+    });
+  }
+  Object.entries(LADDERS).forEach(([f,t]) => line(+f,+t,'#3FA796',false));
+  Object.entries(SNAKES).forEach(([f,t]) => line(+f,+t,'#C1443C',true));
+}
+
+/* ============ Game state ============ */
+const PALETTE = ['#C8A24A','#3FA796','#C1443C','#6E8FD8'];
+let players = [];
+let currentIdx = 0;
+let gameOver = false;
+let awaitingMoveAfterQuiz = false;
+let pendingDiceValue = 0;
+
+const setupOverlay = document.getElementById('setupOverlay');
+const playerFields = document.getElementById('playerFields');
+const countPicker = document.getElementById('countPicker');
+
+/* Preset nama tim — dipilih dengan tombol panah, tanpa keyboard */
+const NAME_PRESETS = ['Elang','Garuda','Rajawali','Merpati','Camar','Serigala','Singa','Harimau','Naga','Komodo','Banteng','Merak'];
+let selectedCount = 2;
+let playerNameIdx = [0,1,2,3]; // indeks preset nama untuk tiap slot pemain
+
+countPicker.addEventListener('click', (e) => {
+  const btn = e.target.closest('.count-btn');
+  if(!btn) return;
+  selectedCount = +btn.dataset.count;
+  countPicker.querySelectorAll('.count-btn').forEach(b => b.classList.toggle('selected', b===btn));
+  renderPlayerFields();
+});
+
+function renderPlayerFields(){
+  playerFields.innerHTML = '';
+  for(let i=0;i<selectedCount;i++){
+    if(playerNameIdx[i] === undefined) playerNameIdx[i] = i % NAME_PRESETS.length;
+    const row = document.createElement('div');
+    row.className = 'player-setup-row';
+    row.innerHTML = `<div class="swatch" style="background:${PALETTE[i]}"></div>
+      <div class="name-cycle">
+        <button type="button" class="name-arrow" data-dir="-1" data-slot="${i}">‹</button>
+        <div class="pname-display" id="pname-display-${i}">Tim ${NAME_PRESETS[playerNameIdx[i]]}</div>
+        <button type="button" class="name-arrow" data-dir="1" data-slot="${i}">›</button>
+      </div>`;
+    playerFields.appendChild(row);
+  }
+}
+playerFields.addEventListener('click', (e) => {
+  const arrow = e.target.closest('.name-arrow');
+  if(!arrow) return;
+  const slot = +arrow.dataset.slot;
+  const dir = +arrow.dataset.dir;
+  const n = NAME_PRESETS.length;
+  playerNameIdx[slot] = ((playerNameIdx[slot] + dir) % n + n) % n;
+  document.getElementById('pname-display-'+slot).textContent = 'Tim ' + NAME_PRESETS[playerNameIdx[slot]];
+});
+renderPlayerFields();
+
+/* ---- Layar penuh, dioperasikan dengan sentuhan (gesture pengguna) ---- */
+const fsToggle = document.getElementById('fsToggle');
+function enterFullscreenSafely(){
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+  if(req){ try{ req.call(el); }catch(e){} }
+}
+fsToggle.addEventListener('click', () => {
+  if(!document.fullscreenElement){
+    enterFullscreenSafely();
+    fsToggle.textContent = '⛶ Keluar Layar Penuh';
+  } else {
+    if(document.exitFullscreen) document.exitFullscreen();
+    fsToggle.textContent = '⛶ Layar Penuh';
+  }
+});
+document.addEventListener('fullscreenchange', () => {
+  fsToggle.textContent = document.fullscreenElement ? '⛶ Keluar Layar Penuh' : '⛶ Layar Penuh';
+});
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  enterFullscreenSafely();
+  const n = selectedCount;
+  players = [];
+  for(let i=0;i<n;i++){
+    const name = 'Tim ' + NAME_PRESETS[playerNameIdx[i]];
+    players.push({name, color:PALETTE[i], pos:0, id:i});
+  }
+  currentIdx = 0;
+  gameOver = false;
+  setupOverlay.classList.add('hidden');
+  renderPlayerList();
+  renderTokens();
+  logMsg('Permainan dimulai dengan '+n+' pemain.');
+  updateActiveHighlight();
+  requestAnimationFrame(()=>{ computeCellCenters(); drawConnectors(); });
+});
+
+function renderPlayerList(){
+  const el = document.getElementById('playerList');
+  el.innerHTML = '';
+  players.forEach((p,i)=>{
+    const row = document.createElement('div');
+    row.className = 'player-row' + (i===currentIdx?' active':'');
+    row.id = 'prow-'+i;
+    row.innerHTML = `<div class="dot" style="background:${p.color}"></div>
+      <div class="pname">${p.name}</div>
+      <div class="ppos">#${p.pos}</div>`;
+    el.appendChild(row);
+  });
+}
+
+function updateActiveHighlight(){
+  players.forEach((p,i)=>{
+    const row = document.getElementById('prow-'+i);
+    if(row) row.classList.toggle('active', i===currentIdx);
+  });
+}
+
+function renderTokens(){
+  for(let num=1; num<=100; num++){
+    const holder = document.getElementById('tok-'+num);
+    if(holder) holder.innerHTML = '';
+  }
+  players.forEach(p=>{
+    if(p.pos < 1) return;
+    const holder = document.getElementById('tok-'+p.pos);
+    if(!holder) return;
+    const t = document.createElement('div');
+    t.className = 'token';
+    t.style.background = p.color;
+    holder.appendChild(t);
+  });
+}
+
+function logMsg(msg){
+  const log = document.getElementById('log');
+  const div = document.createElement('div');
+  div.textContent = msg;
+  log.prepend(div);
+}
+
+/* ============ Dice ============ */
+const diceEl = document.getElementById('dice');
+function buildDicePips(){
+  diceEl.innerHTML = '';
+  for(let i=0;i<9;i++){
+    const p = document.createElement('div');
+    p.className='pip';
+    diceEl.appendChild(p);
+  }
+}
+buildDicePips();
+const PIP_PATTERNS = {
+  1:[4],
+  2:[0,8],
+  3:[0,4,8],
+  4:[0,2,6,8],
+  5:[0,2,4,6,8],
+  6:[0,2,3,5,6,8]
+};
+function showDice(value){
+  const pips = diceEl.querySelectorAll('.pip');
+  pips.forEach((p,i)=>p.classList.toggle('on', PIP_PATTERNS[value].includes(i)));
+}
+showDice(1);
+
+const rollBtn = document.getElementById('rollBtn');
+rollBtn.addEventListener('click', () => {
+  if(gameOver || awaitingMoveAfterQuiz) return;
+  rollBtn.disabled = true;
+  diceEl.classList.add('rolling');
+  let ticks = 0;
+  const iv = setInterval(()=>{
+    showDice(1 + Math.floor(Math.random()*6));
+    ticks++;
+    if(ticks>7){
+      clearInterval(iv);
+      diceEl.classList.remove('rolling');
+      const value = 1 + Math.floor(Math.random()*6);
+      showDice(value);
+      pendingDiceValue = value;
+      openQuiz();
+    }
+  },70);
+});
+
+/* ============ Quiz ============ */
+const quizOverlay = document.getElementById('quizOverlay');
+const quizQ = document.getElementById('quizQ');
+const quizOpts = document.getElementById('quizOpts');
+const quizExplain = document.getElementById('quizExplain');
+const quizNextBtn = document.getElementById('quizNextBtn');
+let currentQuestion = null;
+let answeredCorrect = false;
+
+/* ---- Batas waktu menjawab: 30 detik ---- */
+const TIME_LIMIT = 30;
+let timeLeft = TIME_LIMIT;
+let quizTimerInterval = null;
+const timerBar = document.getElementById('timerBar');
+const timerText = document.getElementById('timerText');
+
+function startQuizTimer(){
+  clearInterval(quizTimerInterval);
+  timeLeft = TIME_LIMIT;
+  updateTimerUI();
+  quizTimerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerUI();
+    if(timeLeft <= 0){
+      clearInterval(quizTimerInterval);
+      handleTimeout();
+    }
+  }, 1000);
+}
+
+function stopQuizTimer(){
+  clearInterval(quizTimerInterval);
+}
+
+function updateTimerUI(){
+  const pct = Math.max(0, (timeLeft / TIME_LIMIT) * 100);
+  timerBar.style.width = pct + '%';
+  timerText.textContent = timeLeft + 's';
+  timerBar.style.background = timeLeft <= 10 ? 'var(--signal-red)' : 'var(--gold)';
+}
+
+function handleTimeout(){
+  const allBtns = quizOpts.querySelectorAll('.opt');
+  allBtns.forEach(b => b.disabled = true);
+  allBtns[currentQuestion.correct].classList.add('correct');
+  answeredCorrect = false;
+  quizExplain.textContent = 'Waktu habis! Jawaban dianggap salah. ' + currentQuestion.exp;
+  quizExplain.classList.add('show');
+  quizNextBtn.style.display = 'block';
+}
+
+function openQuiz(){
+  currentQuestion = QUESTION_BANK[Math.floor(Math.random()*QUESTION_BANK.length)];
+  quizQ.textContent = currentQuestion.q;
+  quizOpts.innerHTML = '';
+  quizExplain.classList.remove('show');
+  quizExplain.textContent = '';
+  quizNextBtn.style.display = 'none';
+  answeredCorrect = false;
+  currentQuestion.opts.forEach((opt,idx)=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => handleAnswer(idx, btn));
+    quizOpts.appendChild(btn);
+  });
+  quizOverlay.classList.remove('hidden');
+  startQuizTimer();
+}
+
+function handleAnswer(idx, btnEl){
+  stopQuizTimer();
+  const allBtns = quizOpts.querySelectorAll('.opt');
+  allBtns.forEach(b=>b.disabled = true);
+  const correctIdx = currentQuestion.correct;
+  if(idx === correctIdx){
+    btnEl.classList.add('correct');
+    answeredCorrect = true;
+    quizExplain.textContent = 'Benar! ' + currentQuestion.exp;
+  } else {
+    btnEl.classList.add('wrong');
+    allBtns[correctIdx].classList.add('correct');
+    answeredCorrect = false;
+    quizExplain.textContent = 'Kurang tepat. ' + currentQuestion.exp;
+  }
+  quizExplain.classList.add('show');
+  quizNextBtn.style.display = 'block';
+}
+
+quizNextBtn.addEventListener('click', () => {
+  stopQuizTimer();
+  quizOverlay.classList.add('hidden');
+  resolveTurn(answeredCorrect);
+});
+
+/* ============ Turn resolution ============ */
+function resolveTurn(correct){
+  const player = players[currentIdx];
+  if(!correct){
+    logMsg(player.name + ' menjawab salah, dadu ' + pendingDiceValue + ' hangus. Giliran berpindah.');
+    nextTurn();
+    return;
+  }
+  let target = player.pos + pendingDiceValue;
+  if(target > 100) target = player.pos; // must land exactly-ish, or just cap: stay if overshoot
+  logMsg(player.name + ' menjawab benar dan maju ke petak ' + Math.min(target,100) + '.');
+  animateMove(player, target, () => {
+    checkLaddersSnakes(player, () => {
+      renderPlayerList();
+      updateActiveHighlight();
+      if(player.pos >= 100){
+        endGame(player);
+      } else {
+        nextTurn();
+      }
+    });
+  });
+}
+
+function animateMove(player, target, cb){
+  player.pos = Math.min(target,100);
+  renderTokens();
+  setTimeout(cb, 350);
+}
+
+function checkLaddersSnakes(player, cb){
+  if(LADDERS[player.pos]){
+    const dest = LADDERS[player.pos];
+    logMsg(player.name + ' menemukan TANGGA! Naik dari ' + player.pos + ' ke ' + dest + '.');
+    setTimeout(()=>{
+      player.pos = dest;
+      renderTokens();
+      setTimeout(cb, 300);
+    }, 300);
+  } else if(SNAKES[player.pos]){
+    const dest = SNAKES[player.pos];
+    logMsg(player.name + ' kena KABEL PUTUS! Turun dari ' + player.pos + ' ke ' + dest + '.');
+    setTimeout(()=>{
+      player.pos = dest;
+      renderTokens();
+      setTimeout(cb, 300);
+    }, 300);
+  } else {
+    cb();
+  }
+}
+
+function nextTurn(){
+  currentIdx = (currentIdx + 1) % players.length;
+  updateActiveHighlight();
+  rollBtn.disabled = false;
+}
+
+/* ============ Win ============ */
+const winOverlay = document.getElementById('winOverlay');
+function endGame(player){
+  gameOver = true;
+  document.getElementById('winTitle').textContent = player.name + ' Menang!';
+  document.getElementById('winSub').textContent = player.name + ' berhasil mencapai petak 100 lebih dulu — juara literasi hukum digital!';
+  winOverlay.classList.remove('hidden');
+  logMsg('🏆 ' + player.name + ' mencapai petak 100 dan memenangkan permainan!');
+}
+
+document.getElementById('playAgainBtn').addEventListener('click', () => {
+  winOverlay.classList.add('hidden');
+  resetGame();
+});
+document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+function resetGame(){
+  gameOver = false;
+  document.getElementById('log').innerHTML = '';
+  setupOverlay.classList.remove('hidden');
+  rollBtn.disabled = false;
+}
+
+window.addEventListener('resize', () => { computeCellCenters(); drawConnectors(); });
+</script>
+</body>
+</html>
